@@ -12,6 +12,7 @@ Key Components:
 - MeanPoolingGPRAggregator: Ablation baseline that mean-pools all rule genes
 """
 
+import re
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -142,8 +143,12 @@ class GPRRuleParser:
         if not rule_string or rule_string.strip() == '':
             return {'type': 'empty', 'genes': []}
         
-        # Clean the rule string
-        rule_string = rule_string.strip().lower()
+        # Clean the rule string. Only the Boolean operators are case-normalised;
+        # gene identifiers keep their original case so they match gene_to_idx
+        # (e.g. the upper-case yeast ORF names of iMM904).
+        rule_string = re.sub(r'(?<![\w.\-])(and|or)(?![\w.\-])',
+                             lambda m: m.group(1).lower(),
+                             rule_string.strip(), flags=re.IGNORECASE)
         
         # Handle simple cases first
         if ' and ' in rule_string and ' or ' not in rule_string and '(' not in rule_string:
